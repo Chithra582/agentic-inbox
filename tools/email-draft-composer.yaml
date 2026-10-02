@@ -1,0 +1,25 @@
+name: email-draft-composer
+description: Creates or updates a draft email reply in the mailbox's SQLite store for user review.
+input_schema:
+  type: object
+  properties:
+    mailbox_id:
+      type: string
+      description: Target mailbox email address.
+    recipient:
+      type: string
+      description: Primary destination recipient email address.
+    subject:
+      type: string
+      description: Email subject line.
+    body:
+      type: string
+      description: Plain text or markdown draft body content.
+    reply_to_message_id:
+      type: string
+      description: Optional message ID being replied to for thread continuity.
+  required:
+    - mailbox_id
+    - recipient
+    - subject
+    - body

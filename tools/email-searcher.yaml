@@ -1,0 +1,21 @@
+name: email-searcher
+description: Searches stored emails within a designated mailbox using keywords, sender filters, and folder constraints.
+input_schema:
+  type: object
+  properties:
+    mailbox_id:
+      type: string
+      description: Target mailbox email address or identifier.
+    query:
+      type: string
+      description: Search keywords or phrases.
+    folder:
+      type: string
+      description: Optional folder constraint (e.g., 'inbox', 'sent', 'drafts', 'archive').
+    limit:
+      type: integer
+      description: Maximum number of search results to return.
+      default: 20
+  required:
+    - mailbox_id
+    - query

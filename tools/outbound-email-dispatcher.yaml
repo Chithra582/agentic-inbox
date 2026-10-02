@@ -1,0 +1,26 @@
+name: outbound-email-dispatcher
+description: Transmits an approved outbound email via Cloudflare Email Service upon receiving explicit user confirmation.
+input_schema:
+  type: object
+  properties:
+    mailbox_id:
+      type: string
+      description: Originating mailbox address.
+    recipient:
+      type: string
+      description: Destination recipient email address.
+    subject:
+      type: string
+      description: Outbound email subject line.
+    body:
+      type: string
+      description: Plain text or HTML email body.
+    human_approval_token:
+      type: string
+      description: Cryptographic or explicit confirmation token verifying user authorization.
+  required:
+    - mailbox_id
+    - recipient
+    - subject
+    - body
+    - human_approval_token

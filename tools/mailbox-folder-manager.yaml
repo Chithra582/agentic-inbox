@@ -1,0 +1,22 @@
+name: mailbox-folder-manager
+description: Organizes emails by moving messages between folders, archiving, or marking items as read.
+input_schema:
+  type: object
+  properties:
+    mailbox_id:
+      type: string
+      description: Target mailbox email address.
+    message_id:
+      type: string
+      description: Unique ID of the email message to modify.
+    destination_folder:
+      type: string
+      description: Target folder name ('inbox', 'archive', 'trash', 'spam').
+    mark_as_read:
+      type: boolean
+      description: Whether to set the read status flag.
+      default: true
+  required:
+    - mailbox_id
+    - message_id
+    - destination_folder

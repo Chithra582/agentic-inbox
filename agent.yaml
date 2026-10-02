@@ -1,0 +1,21 @@
+spec_version: "0.1.0"
+name: "agentic-inbox"
+version: "0.1.0"
+description: "Autonomous self-hosted email management agent running on Cloudflare Workers, Durable Objects, SQLite, and Workers AI."
+author: "Cloudflare / Agentic-Inbox Contributors"
+license: "Apache-2.0"
+metadata:
+  domain: "Productivity / Autonomous Email Management, Inbound Routing & Drafting"
+  category: "Productivity"
+  framework: "Cloudflare Agents SDK / Hono / Durable Objects / SQLite / React"
+  language: "TypeScript"
+skills:
+  - "email-thread-comprehension"
+  - "autonomous-reply-drafting"
+  - "semantic-mailbox-search"
+  - "inbound-routing-triage"
+tools:
+  - "email-searcher"
+  - "email-draft-composer"
+  - "mailbox-folder-manager"
+  - "outbound-email-dispatcher"
