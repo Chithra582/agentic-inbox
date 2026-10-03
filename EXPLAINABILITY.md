@@ -1,8 +1,8 @@
 # EXPLAINABILITY.md
 
-This document explains the internal mechanisms, data lineage, operational boundaries, and governance framework of **# Explainability & Decision Transparency Report** (`agentic-inbox`) in accordance with the **OpenGAP v0.1.0** specification for the **HiDevs GitAgent Passport** clearance pipeline.
+This document explains the internal mechanisms, data lineage, operational boundaries, and governance framework of **Agentic Inbox** (`agentic-inbox`) in accordance with the **OpenGAP v0.1.0** specification for the **HiDevs GitAgent Passport** clearance pipeline.
 
-> **Agent Name:** # Explainability & Decision Transparency Report (`agentic-inbox`)  
+> **Agent Name:** Agentic Inbox (`agentic-inbox`)  
 > **Specification:** OpenGAP v0.1.0  
 > **Category / Domain:** Productivity / Autonomous Email Management, Inbound Routing & Drafting  
 > **Compliance Standard:** OpenGAP Checkpoint 2 (Explainability & Decision Governance), OWASP LLM Top 10, MITRE ATLAS  
@@ -11,7 +11,7 @@ This document explains the internal mechanisms, data lineage, operational bounda
 
 ## How the Agent Decides
 
-# Explainability & Decision Transparency Report operates via a deterministic five-stage operational pipeline.
+The agent manages incoming correspondence, thread reasoning, and reply composition through a deterministic, 5-stage pipeline on Cloudflare Workers.
 
 ### 1. Decision Architecture
 
@@ -52,7 +52,6 @@ The runtime intake, state classification, evaluation, and execution tracking ope
 
 ### 2. Decision Logic & Routing Formulations
 
-Scoring
 Inbound email urgency scoring and folder routing apply a weighted multi-factor formulation:
 
 $$S_{\text{urgency}}(m) = w_1 \cdot \text{SenderAffinity}(m) + w_2 \cdot \text{TimeSensitivity}(m) + w_3 \cdot \text{ActionRelevance}(m) - w_4 \cdot \text{SpamScore}(m)$$
@@ -71,29 +70,31 @@ Where $\mathbf{e}$ represents Workers AI text embeddings, and $\mu = 0.65$ balan
 
 ### 3. Thresholding & Refusal Decision Criteria
 
-# Explainability & Decision Transparency Report enforces strict operational boundaries and deterministic refusal thresholds:
-- **Refusal on ERR_UNCONFIRMED_SEND_BLOCKED**: **Unconfirmed Outbound Send** halts execution with code `ERR_UNCONFIRMED_SEND_BLOCKED`.
-- **Refusal on ERR_INVALID_RECIPIENT_ADDRESS**: **Invalid Email Address Syntax** halts execution with code `ERR_INVALID_RECIPIENT_ADDRESS`.
-- **Refusal on ERR_ATTACHMENT_SIZE_EXCEEDED**: **Attachment Size Overflow** halts execution with code `ERR_ATTACHMENT_SIZE_EXCEEDED`.
-- **Refusal on ERR_ACCESS_TOKEN_INVALID**: **Cloudflare Access JWT Expired** halts execution with code `ERR_ACCESS_TOKEN_INVALID`.
-- **Refusal on ERR_SEND_RATE_LIMIT_EXCEEDED**: **Outbound Send Rate Limit** halts execution with code `ERR_SEND_RATE_LIMIT_EXCEEDED`.
+Agentic Inbox enforces strict operational boundaries and deterministic refusal thresholds:
+- **Refusal on ERR_UNCONFIRMED_SEND_BLOCKED**: Unconfirmed Outbound Send (Missing human approval token) halts execution with code `ERR_UNCONFIRMED_SEND_BLOCKED`.
+- **Refusal on ERR_INVALID_RECIPIENT_ADDRESS**: Invalid Email Address Syntax (RFC 5322 regex failure) halts execution with code `ERR_INVALID_RECIPIENT_ADDRESS`.
+- **Refusal on ERR_ATTACHMENT_SIZE_EXCEEDED**: Attachment Size Overflow ($> 25$ MB) halts execution with code `ERR_ATTACHMENT_SIZE_EXCEEDED`.
+- **Refusal on ERR_ACCESS_TOKEN_INVALID**: Cloudflare Access JWT Expired (Expired / invalid signature) halts execution with code `ERR_ACCESS_TOKEN_INVALID`.
+- **Refusal on ERR_SEND_RATE_LIMIT_EXCEEDED**: Outbound Send Rate Limit ($> 50$ emails/hour) halts execution with code `ERR_SEND_RATE_LIMIT_EXCEEDED`.
 
 ### 4. Fallback Decision Mechanism
 
 Continuous operational stability is maintained through layered fault recovery:
+- **Tier 1 (Automated Retry)**: If Workers AI model inference encounters transient ratelimiting, the agent retries with exponential backoff (1s, 2s).
+- **Tier 2 (DraftOnly Safe Mode)**: If any ambiguity exists regarding recipient intent or thread context, the agent defaults strictly to saving an editable draft without prompting for send.
 - **Model Fallback Cascade**: High-level reasoning and synthesis default to `gemini-2.0-flash` with automatic failover to `gpt-4o` and `claude-3-5-sonnet`.
 
 ### 5. Human-in-the-Loop Governance
 
 Human operators retain sovereign authority over the multi-agent execution lifecycle:
-- **Consequential Action Sign-Off**: Sensitive and consequential actions require operator sign-off.
-- **Offline Ledger Auditing**: Operators can verify execution records and state transitions offline.
+- **Tier 3 (Mandatory Human Signoff)**: Outbound message transmission (`send_email`) is hardcoded to require physical user interaction in the React UI or explicit confirmation via MCP parameters.
+- **Benchmark Trajectory Auditing**: Operators inspect evaluation traces, raw generation tokens, and container logs to verify scoring fidelity.
 
 ---
 
 ## The Data It Uses
 
-# Explainability & Decision Transparency Report operates under strict principles of data minimization, environment isolation, and privacy protection.
+Agentic Inbox operates under strict principles of data minimization, environment isolation, and privacy protection.
 
 ### 1. Ingested Input Data
 
@@ -104,7 +105,9 @@ The framework processes only operational data necessary to perform its functions
 
 ### 2. Configuration & Reference Data
 
-- **Configuration Schemas**: Declarative system policy files.
+- **Durable Object SQLite**: Relational tables housing mailbox folders, emails, threads, drafts, and rate-limiting counters.
+- **Cloudflare R2**: Object storage for large attachments and raw EML message archives.
+- **Workers AI**: On-edge inference for drafting and semantic vector embeddings.
 
 ### 3. Base Model & Inference Lineage
 
@@ -122,7 +125,7 @@ The framework processes only operational data necessary to perform its functions
 
 ## Limitations
 
-Understanding the operational boundaries and technical constraints of # Explainability & Decision Transparency Report is essential for effective deployment.
+Understanding the operational boundaries and technical constraints of Agentic Inbox is essential for effective deployment.
 
 ### 1. Cold Start Ingestion Latency for Large Attachments
 - **Limitation**: Processing multi-megabyte PDF attachments during MIME parsing can increase Worker execution time.
