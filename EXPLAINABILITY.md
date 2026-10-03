@@ -11,8 +11,7 @@ This document explains the internal mechanisms, data lineage, operational bounda
 
 ## How the Agent Decides
 
-### 1. Deterministic Multi-Stage Decision Pipeline
-The agent manages incoming correspondence, thread reasoning, and reply composition through a deterministic, 5-stage pipeline on Cloudflare Workers.
+# Explainability & Decision Transparency Report operates via a deterministic five-stage operational pipeline.
 
 ### 1. Decision Architecture
 
@@ -53,13 +52,31 @@ The runtime intake, state classification, evaluation, and execution tracking ope
 
 ### 2. Decision Logic & Routing Formulations
 
+Scoring
+Inbound email urgency scoring and folder routing apply a weighted multi-factor formulation:
 
+$$S_{\text{urgency}}(m) = w_1 \cdot \text{SenderAffinity}(m) + w_2 \cdot \text{TimeSensitivity}(m) + w_3 \cdot \text{ActionRelevance}(m) - w_4 \cdot \text{SpamScore}(m)$$
+
+Where:
+- $w_1 = 0.40$: Historical sender interaction frequency and domain whitelist weight.
+- $w_2 = 0.25$: Extracted calendar deadlines and temporal indicators (e.g., 'EOD', 'urgent').
+- $w_3 = 0.20$: Presence of direct questions or explicit calls-to-action in email body.
+- $w_4 = 0.15$: Heuristic spam and newsletter classification penalty.
+
+Semantic search ranking across stored conversation threads is computed as:
+
+$$R(t_i, q) = \mu \cdot \text{CosineSim}(\mathbf{e}_{t_i}, \mathbf{e}_q) + (1 - \mu) \cdot \text{BM25}(t_i, q)$$
+
+Where $\mathbf{e}$ represents Workers AI text embeddings, and $\mu = 0.65$ balances vector semantics with keyword precision.
 
 ### 3. Thresholding & Refusal Decision Criteria
 
 # Explainability & Decision Transparency Report enforces strict operational boundaries and deterministic refusal thresholds:
-- **Refusal on Policy Violation**: Requests violating boundary constraints halt with code `ERR_POLICY_VIOLATION`.
-- **Refusal on Timeout**: Executions exceeding budget limits terminate with code `ERR_EXECUTION_TIMEOUT`.
+- **Refusal on ERR_UNCONFIRMED_SEND_BLOCKED**: **Unconfirmed Outbound Send** halts execution with code `ERR_UNCONFIRMED_SEND_BLOCKED`.
+- **Refusal on ERR_INVALID_RECIPIENT_ADDRESS**: **Invalid Email Address Syntax** halts execution with code `ERR_INVALID_RECIPIENT_ADDRESS`.
+- **Refusal on ERR_ATTACHMENT_SIZE_EXCEEDED**: **Attachment Size Overflow** halts execution with code `ERR_ATTACHMENT_SIZE_EXCEEDED`.
+- **Refusal on ERR_ACCESS_TOKEN_INVALID**: **Cloudflare Access JWT Expired** halts execution with code `ERR_ACCESS_TOKEN_INVALID`.
+- **Refusal on ERR_SEND_RATE_LIMIT_EXCEEDED**: **Outbound Send Rate Limit** halts execution with code `ERR_SEND_RATE_LIMIT_EXCEEDED`.
 
 ### 4. Fallback Decision Mechanism
 
@@ -69,8 +86,8 @@ Continuous operational stability is maintained through layered fault recovery:
 ### 5. Human-in-the-Loop Governance
 
 Human operators retain sovereign authority over the multi-agent execution lifecycle:
-- **Operational Review**: Sensitive actions require operator sign-off.
-- **Audit Logging**: All decisions are recorded for auditability.
+- **Consequential Action Sign-Off**: Sensitive and consequential actions require operator sign-off.
+- **Offline Ledger Auditing**: Operators can verify execution records and state transitions offline.
 
 ---
 
@@ -81,11 +98,13 @@ Human operators retain sovereign authority over the multi-agent execution lifecy
 ### 1. Ingested Input Data
 
 The framework processes only operational data necessary to perform its functions:
-- **Input Directives**: Operational tasks and data payloads.
+- **MIME Email Messages**: Headers (From, To, Cc, Subject, Date, Message-ID), plain text, and HTML bodies.
+- **File Attachments**: Documents, PDFs, and images streamable to Cloudflare R2 storage.
+- **Search Queries**: Natural language search phrases and folder filter parameters.
 
 ### 2. Configuration & Reference Data
 
-- **Configuration Schemas**: Declarative system configuration files.
+- **Configuration Schemas**: Declarative system policy files.
 
 ### 3. Base Model & Inference Lineage
 
@@ -104,102 +123,6 @@ The framework processes only operational data necessary to perform its functions
 ## Limitations
 
 Understanding the operational boundaries and technical constraints of # Explainability & Decision Transparency Report is essential for effective deployment.
-
-### 1. Deterministic Multi-Stage Decision Pipeline
-The agent manages incoming correspondence, thread reasoning, and reply composition through a deterministic, 5-stage pipeline on Cloudflare Workers.
-
-```
-+-----------------------------------------------------------------------------------+
-|                        Deterministic Email Agent Pipeline                         |
-+-----------------------------------------------------------------------------------+
-|  [Stage 1: Inbound MIME Ingestion & SPF/DKIM Verification]                        |
-|     --> Ingest payload from Cloudflare Email Routing & verify domain authenticity  |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 2: Mailbox Durable Object Hydration & Storage Persistence]                |
-|     --> Route to isolated DO, store body in SQLite, & stream attachments to R2    |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 3: Thread Reconstruction & Urgency Priority Scoring]                      |
-|     --> Trace References chain, score sender importance, & extract action items   |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 4: Autonomous Draft Composition & Safety Verification Gate]              |
-|     --> Generate contextual draft reply via Workers AI & verify policy guardrails |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 5: User Presentation & Explicit Human Send Confirmation]                  |
-|     --> Present draft in UI/MCP; wait for human approval before outbound dispatch |
-+-----------------------------------------------------------------------------------+
-```
-
-### 2. Mathematical Decision & Affinity Scoring
-Inbound email urgency scoring and folder routing apply a weighted multi-factor formulation:
-
-$$S_{\text{urgency}}(m) = w_1 \cdot \text{SenderAffinity}(m) + w_2 \cdot \text{TimeSensitivity}(m) + w_3 \cdot \text{ActionRelevance}(m) - w_4 \cdot \text{SpamScore}(m)$$
-
-Where:
-- $w_1 = 0.40$: Historical sender interaction frequency and domain whitelist weight.
-- $w_2 = 0.25$: Extracted calendar deadlines and temporal indicators (e.g., 'EOD', 'urgent').
-- $w_3 = 0.20$: Presence of direct questions or explicit calls-to-action in email body.
-- $w_4 = 0.15$: Heuristic spam and newsletter classification penalty.
-
-Semantic search ranking across stored conversation threads is computed as:
-
-$$R(t_i, q) = \mu \cdot \text{CosineSim}(\mathbf{e}_{t_i}, \mathbf{e}_q) + (1 - \mu) \cdot \text{BM25}(t_i, q)$$
-
-Where $\mathbf{e}$ represents Workers AI text embeddings, and $\mu = 0.65$ balances vector semantics with keyword precision.
-
-### 3. Thresholding & Refusal Decision Criteria
-When inbound emails or requested agent actions violate security constraints, processing is halted with explicit error codes:
-
-| Threshold Parameter | Value | Decision / Refusal Action | Error Code |
-| :--- | :--- | :--- | :--- |
-| **Unconfirmed Outbound Send** | Missing human approval token | Block outbound delivery attempt | `ERR_UNCONFIRMED_SEND_BLOCKED` |
-| **Invalid Email Address Syntax** | RFC 5322 regex failure | Reject draft creation or delivery | `ERR_INVALID_RECIPIENT_ADDRESS` |
-| **Attachment Size Overflow** | $> 25$ MB | Refuse inline attachment; require R2 link | `ERR_ATTACHMENT_SIZE_EXCEEDED` |
-| **Cloudflare Access JWT Expired** | Expired / invalid signature | Deny access with 401 Unauthorized | `ERR_ACCESS_TOKEN_INVALID` |
-| **Outbound Send Rate Limit** | $> 50$ emails/hour | Throttle outbound email delivery queue | `ERR_SEND_RATE_LIMIT_EXCEEDED` |
-
-### 4. Multi-Tier Fallback Mechanisms & Human-in-the-Loop Governance
-1. **Tier 1 (Automated Retry)**: If Workers AI model inference encounters transient rate-limiting, the agent retries with exponential backoff (1s, 2s).
-2. **Tier 2 (Draft-Only Safe Mode)**: If any ambiguity exists regarding recipient intent or thread context, the agent defaults strictly to saving an editable draft without prompting for send.
-3. **Tier 3 (Mandatory Human Sign-off)**: Outbound message transmission (`send_email`) is hardcoded to require physical user interaction in the React UI or explicit confirmation via MCP parameters.
-
----
-
-## The Data It Uses
-
-### 1. Ingestion Data & Input Types
-- **MIME Email Messages**: Headers (From, To, Cc, Subject, Date, Message-ID), plain text, and HTML bodies.
-- **File Attachments**: Documents, PDFs, and images streamable to Cloudflare R2 storage.
-- **Search Queries**: Natural language search phrases and folder filter parameters.
-
-### 2. Reference Storage & Database Engines
-- **Durable Object SQLite**: Relational tables housing mailbox folders, emails, threads, drafts, and rate-limiting counters.
-- **Cloudflare R2**: Object storage for large attachments and raw EML message archives.
-- **Workers AI**: On-edge inference for drafting and semantic vector embeddings.
-
-### 3. Model Lineage & System Architecture
-- **Language Models**: Cloudflare Workers AI (`@cf/moonshotai/kimi-k2.5`, `@cf/meta/llama-3.3-70b-instruct`).
-- **Application Stack**: React 19, Hono, Cloudflare Agents SDK (`AIChatAgent`), TypeScript.
-
-### 4. Data Privacy, Governance & Retention
-- **Single-Tenant Mailbox Isolation**: Each mailbox resides in its own isolated Durable Object instance with no cross-tenant query access.
-- **Cloudflare Access Zero Trust**: Ingress requires organizational SSO authentication via Cloudflare Access JWT.
-- **Configurable Retention**: Deleted emails placed in Trash undergo automatic SQLite purging after 30 days.
-
----
-
-## Limitations
 
 ### 1. Cold Start Ingestion Latency for Large Attachments
 - **Limitation**: Processing multi-megabyte PDF attachments during MIME parsing can increase Worker execution time.
@@ -239,103 +162,7 @@ When inbound emails or requested agent actions violate security constraints, pro
 | - Base model lineage & deterministic engines | Section 3 | Verified |
 | - Data privacy, retention lifecycle & MITRE/OWASP | Section 4 | Verified |
 | **Its limitations** | [Limitations](#limitations) | **Covered** |
-| - Deterministic Multi-Stage Decision Pipeline
-The agent manages incoming correspondence, thread reasoning, and reply composition through a deterministic, 5-stage pipeline on Cloudflare Workers.
-
-```
-+-----------------------------------------------------------------------------------+
-|                        Deterministic Email Agent Pipeline                         |
-+-----------------------------------------------------------------------------------+
-|  [Stage 1: Inbound MIME Ingestion & SPF/DKIM Verification]                        |
-|     --> Ingest payload from Cloudflare Email Routing & verify domain authenticity  |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 2: Mailbox Durable Object Hydration & Storage Persistence]                |
-|     --> Route to isolated DO, store body in SQLite, & stream attachments to R2    |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 3: Thread Reconstruction & Urgency Priority Scoring]                      |
-|     --> Trace References chain, score sender importance, & extract action items   |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 4: Autonomous Draft Composition & Safety Verification Gate]              |
-|     --> Generate contextual draft reply via Workers AI & verify policy guardrails |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|  [Stage 5: User Presentation & Explicit Human Send Confirmation]                  |
-|     --> Present draft in UI/MCP; wait for human approval before outbound dispatch |
-+-----------------------------------------------------------------------------------+
-```
-
-### 2. Mathematical Decision & Affinity Scoring
-Inbound email urgency scoring and folder routing apply a weighted multi-factor formulation:
-
-$$S_{\text{urgency}}(m) = w_1 \cdot \text{SenderAffinity}(m) + w_2 \cdot \text{TimeSensitivity}(m) + w_3 \cdot \text{ActionRelevance}(m) - w_4 \cdot \text{SpamScore}(m)$$
-
-Where:
-- $w_1 = 0.40$: Historical sender interaction frequency and domain whitelist weight.
-- $w_2 = 0.25$: Extracted calendar deadlines and temporal indicators (e.g., 'EOD', 'urgent').
-- $w_3 = 0.20$: Presence of direct questions or explicit calls-to-action in email body.
-- $w_4 = 0.15$: Heuristic spam and newsletter classification penalty.
-
-Semantic search ranking across stored conversation threads is computed as:
-
-$$R(t_i, q) = \mu \cdot \text{CosineSim}(\mathbf{e}_{t_i}, \mathbf{e}_q) + (1 - \mu) \cdot \text{BM25}(t_i, q)$$
-
-Where $\mathbf{e}$ represents Workers AI text embeddings, and $\mu = 0.65$ balances vector semantics with keyword precision.
-
-### 3. Thresholding & Refusal Decision Criteria
-When inbound emails or requested agent actions violate security constraints, processing is halted with explicit error codes:
-
-| Threshold Parameter | Value | Decision / Refusal Action | Error Code |
-| :--- | :--- | :--- | :--- |
-| **Unconfirmed Outbound Send** | Missing human approval token | Block outbound delivery attempt | `ERR_UNCONFIRMED_SEND_BLOCKED` |
-| **Invalid Email Address Syntax** | RFC 5322 regex failure | Reject draft creation or delivery | `ERR_INVALID_RECIPIENT_ADDRESS` |
-| **Attachment Size Overflow** | $> 25$ MB | Refuse inline attachment; require R2 link | `ERR_ATTACHMENT_SIZE_EXCEEDED` |
-| **Cloudflare Access JWT Expired** | Expired / invalid signature | Deny access with 401 Unauthorized | `ERR_ACCESS_TOKEN_INVALID` |
-| **Outbound Send Rate Limit** | $> 50$ emails/hour | Throttle outbound email delivery queue | `ERR_SEND_RATE_LIMIT_EXCEEDED` |
-
-### 4. Multi-Tier Fallback Mechanisms & Human-in-the-Loop Governance
-1. **Tier 1 (Automated Retry)**: If Workers AI model inference encounters transient rate-limiting, the agent retries with exponential backoff (1s, 2s).
-2. **Tier 2 (Draft-Only Safe Mode)**: If any ambiguity exists regarding recipient intent or thread context, the agent defaults strictly to saving an editable draft without prompting for send.
-3. **Tier 3 (Mandatory Human Sign-off)**: Outbound message transmission (`send_email`) is hardcoded to require physical user interaction in the React UI or explicit confirmation via MCP parameters.
-
----
-
-## The Data It Uses
-
-### 1. Ingestion Data & Input Types
-- **MIME Email Messages**: Headers (From, To, Cc, Subject, Date, Message-ID), plain text, and HTML bodies.
-- **File Attachments**: Documents, PDFs, and images streamable to Cloudflare R2 storage.
-- **Search Queries**: Natural language search phrases and folder filter parameters.
-
-### 2. Reference Storage & Database Engines
-- **Durable Object SQLite**: Relational tables housing mailbox folders, emails, threads, drafts, and rate-limiting counters.
-- **Cloudflare R2**: Object storage for large attachments and raw EML message archives.
-- **Workers AI**: On-edge inference for drafting and semantic vector embeddings.
-
-### 3. Model Lineage & System Architecture
-- **Language Models**: Cloudflare Workers AI (`@cf/moonshotai/kimi-k2.5`, `@cf/meta/llama-3.3-70b-instruct`).
-- **Application Stack**: React 19, Hono, Cloudflare Agents SDK (`AIChatAgent`), TypeScript.
-
-### 4. Data Privacy, Governance & Retention
-- **Single-Tenant Mailbox Isolation**: Each mailbox resides in its own isolated Durable Object instance with no cross-tenant query access.
-- **Cloudflare Access Zero Trust**: Ingress requires organizational SSO authentication via Cloudflare Access JWT.
-- **Configurable Retention**: Deleted emails placed in Trash undergo automatic SQLite purging after 30 days.
-
----
-
-## Limitations
-
-### 1. Cold Start Ingestion Latency for Large Attachments | Section 1 | Verified |
+| - Cold Start Ingestion Latency for Large Attachments | Section 1 | Verified |
 | - Domain-Level Email Routing Dependency | Section 2 | Verified |
 | - HTML Rich Text Formatting Nuances | Section 3 | Verified |
 | - Rate Limits on Cloudflare Outbound Email Service | Section 4 | Verified |
